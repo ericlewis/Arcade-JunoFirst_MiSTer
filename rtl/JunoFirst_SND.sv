@@ -85,11 +85,24 @@ jtframe_frac_cen #(10) sound_cen
 
 // i8039: ~8 MHz from 49.152 MHz
 // 49.152 / 6 = 8.192 MHz (close to 8 MHz, standard MiSTer approximation)
-reg [2:0] mcu_div = 3'd0;
-wire cen_8m = (mcu_div == 3'd0);
-always_ff @(posedge clk_49m) begin
-	mcu_div <= (mcu_div == 3'd5) ? 3'd0 : mcu_div + 3'd1;
-end
+//reg [2:0] mcu_div = 3'd0;
+//wire cen_8m = (mcu_div == 3'd0);
+//always_ff @(posedge clk_49m) begin
+//	mcu_div <= (mcu_div == 3'd5) ? 3'd0 : mcu_div + 3'd1;
+//end
+
+// i8039: 8.000 MHz from 49.152 MHz
+// Real hardware uses a separate 8 MHz crystal (not derived from 18.432 MHz main xtal)
+// 49.152 * 125 / 768 = 8.000000 MHz EXACT
+// Previous div-by-6 gave 8.192 MHz (+2.4% error — audibly wrong DAC pitch)
+wire cen_8m;
+jtframe_frac_cen #(10) mcu_cen
+(
+	.clk(clk_49m),
+	.n(10'd125),
+	.m(10'd768),
+	.cen({9'bZZZZZZZZZ, cen_8m})
+);
 
 //------------------------------------------------------- Sound latch (main CPU -> Z80) --------------------------------------//
 
