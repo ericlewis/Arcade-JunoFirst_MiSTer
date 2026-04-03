@@ -141,16 +141,36 @@ wire reset = |reset_cnt;
 always @(posedge CLK_49M)
     if (reset_cnt) reset_cnt <= reset_cnt - 1'd1;
 
-// ROM loading — ROMs loaded directly via ioctl during dataslot_requestwrite
-// The Pocket sends ROM data as bridge writes which we need to capture.
-// For now, stub ioctl — ROMs need the DMA mechanism (future work).
-reg        ioctl_download = 0;
-reg        ioctl_wr = 0;
-reg [24:0] ioctl_addr;
-reg  [7:0] ioctl_data;
-reg  [7:0] ioctl_index;
+// ROM loading via data_loader — all ROMs concatenated at 0x0xxxxxxx
+wire        rom_dl_wr;
+wire [27:0] rom_dl_addr;
+wire  [7:0] rom_dl_data;
 
-// TODO: wire ROM loading via target_dataslot_read (same as C64)
+data_loader #(.ADDRESS_MASK_UPPER_4(4'h0), .ADDRESS_SIZE(28)) rom_loader (
+    .clk_74a(clk_74a), .clk_memory(CLK_49M),
+    .bridge_wr(bridge_wr), .bridge_endian_little(bridge_endian_little),
+    .bridge_addr(bridge_addr), .bridge_wr_data(bridge_wr_data),
+    .write_en(rom_dl_wr), .write_addr(rom_dl_addr), .write_data(rom_dl_data)
+);
+
+reg ioctl_download = 0;
+reg dl_downloading = 0;
+reg dl_s0, dl_s1;
+always @(posedge clk_74a) begin
+    if (dataslot_requestwrite) dl_downloading <= 1;
+    if (dataslot_allcomplete)  dl_downloading <= 0;
+end
+always @(posedge CLK_49M) begin
+    dl_s0 <= dl_downloading; dl_s1 <= dl_s0;
+    ioctl_download <= dl_s1;
+end
+
+wire        ioctl_wr    = rom_dl_wr;
+wire [24:0] ioctl_addr  = rom_dl_addr[24:0];
+wire  [7:0] ioctl_data  = rom_dl_data;
+// Index based on address: 0-96KB=idx0, 96-100KB=idx1, 100-104KB=idx2
+wire  [7:0] ioctl_index = (rom_dl_addr < 28'h18000) ? 8'd0 :
+                           (rom_dl_addr < 28'h19000) ? 8'd1 : 8'd2;
 
 // Juno First core
 wire signed [15:0] snd;
