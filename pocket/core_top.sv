@@ -169,11 +169,16 @@ always @(posedge CLK_49M) begin
 end
 
 wire        ioctl_wr    = rom_dl_wr;
-wire [24:0] ioctl_addr  = rom_dl_addr[24:0];
 wire  [7:0] ioctl_data  = rom_dl_data;
-// Index based on address: 0-96KB=idx0, 96-100KB=idx1, 100-104KB=idx2
+// Index and relative address based on absolute offset in concatenated ROM:
+// 0x00000-0x17FFF = index 0 (96KB main CPU), addr relative
+// 0x18000-0x18FFF = index 1 (4KB Z80 sound), addr = offset - 0x18000
+// 0x19000-0x19FFF = index 2 (4KB i8039 MCU), addr = offset - 0x19000
 wire  [7:0] ioctl_index = (rom_dl_addr < 28'h18000) ? 8'd0 :
                            (rom_dl_addr < 28'h19000) ? 8'd1 : 8'd2;
+wire [24:0] ioctl_addr  = (rom_dl_addr < 28'h18000) ? rom_dl_addr[24:0] :
+                           (rom_dl_addr < 28'h19000) ? rom_dl_addr[24:0] - 25'h18000 :
+                                                        rom_dl_addr[24:0] - 25'h19000;
 
 // Juno First core
 wire signed [15:0] snd;
