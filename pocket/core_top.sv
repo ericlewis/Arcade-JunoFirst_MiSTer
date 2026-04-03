@@ -183,8 +183,8 @@ wire       hs_core, vs_core, hblank_core, vblank_core, ce_pix_core;
 JunoFirst JF_inst (
     .reset          (~reset),
     .clk_49m        (CLK_49M),
-    .coin           (2'b11),       // active low — no coins
-    .start_buttons  (2'b11),       // active low
+    .coin           ({1'b1, ~cont1_key[14]}),   // Select = coin
+    .start_buttons  ({~cont1_key[7], ~cont1_key[15]}), // Start=1P, Y=2P
     .p1_joystick    ({~cont1_key[3], ~cont1_key[2], ~cont1_key[1], ~cont1_key[0]}),
     .p2_joystick    ({~cont2_key[3], ~cont2_key[2], ~cont2_key[1], ~cont2_key[0]}),
     .p1_fire        (~cont1_key[4]),  // A
@@ -192,7 +192,7 @@ JunoFirst JF_inst (
     .p1_warp        (~cont1_key[5]),  // B
     .p2_warp        (~cont2_key[5]),
     .btn_service    (1'b1),         // active low
-    .dip_sw         (16'hFFFF),     // default DIPs
+    .dip_sw         (16'h73FF),     // DSW2=0x73 (3 lives, demo sounds on), DSW1=0xFF (1c/1cr)
     .h_center       (4'd0),
     .v_center       (4'd0),
     .video_hsync    (hs_core),
