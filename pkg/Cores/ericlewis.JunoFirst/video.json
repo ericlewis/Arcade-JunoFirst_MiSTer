@@ -1,1 +1,1 @@
-{"video":{"magic":"APF_VER_1","scaler_modes":[{"width":224,"height":256,"aspect_w":3,"aspect_h":4,"rotation":1,"mirror":0}]}}
+{"video":{"magic":"APF_VER_1","scaler_modes":[{"width":256,"height":224,"aspect_w":4,"aspect_h":3,"rotation":90,"mirror":0}]}}
