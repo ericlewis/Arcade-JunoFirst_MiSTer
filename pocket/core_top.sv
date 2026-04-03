@@ -242,38 +242,15 @@ assign video_de  = vid_de;
 assign video_vs  = vid_vs;
 assign video_hs  = vid_hs;
 
-// Audio I2S
-assign audio_mclk = audgen_mclk;
-assign audio_dac  = audgen_dac;
-assign audio_lrck = audgen_lrck;
-
-reg [21:0] audgen_accum;
-reg audgen_mclk;
-parameter [20:0] CYCLE_48KHZ = 21'd122880 * 2;
-always @(posedge clk_74a) begin
-    audgen_accum <= audgen_accum + CYCLE_48KHZ;
-    if (audgen_accum >= 21'd742500) begin
-        audgen_mclk <= ~audgen_mclk;
-        audgen_accum <= audgen_accum - 21'd742500 + CYCLE_48KHZ;
-    end
-end
-
-reg [1:0] aud_mclk_div;
-wire audgen_sclk = aud_mclk_div[1];
-always @(posedge audgen_mclk) aud_mclk_div <= aud_mclk_div + 1'b1;
-
-reg [4:0] audgen_lrck_cnt;
-reg audgen_lrck, audgen_dac;
-reg [15:0] audgen_shift;
-reg [15:0] aud_sample;
-always @(posedge clk_74a) aud_sample <= snd;
-
-always @(negedge audgen_sclk) begin
-    audgen_lrck_cnt <= audgen_lrck_cnt + 1'b1;
-    if (audgen_lrck_cnt == 5'd31) audgen_lrck <= ~audgen_lrck;
-    if (audgen_lrck_cnt == 5'd0) audgen_shift <= aud_sample;
-    audgen_dac <= audgen_shift[15];
-    audgen_shift <= {audgen_shift[14:0], 1'b0};
-end
+// Audio via agg23 sound_i2s (proper CDC + I2S generation)
+sound_i2s #(.CHANNEL_WIDTH(16), .SIGNED_INPUT(1)) sound_i2s_inst (
+    .clk_74a   (clk_74a),
+    .clk_audio (CLK_49M),
+    .audio_l   (snd),
+    .audio_r   (snd),
+    .audio_mclk(audio_mclk),
+    .audio_lrck(audio_lrck),
+    .audio_dac (audio_dac)
+);
 
 endmodule
