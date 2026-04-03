@@ -6,9 +6,10 @@
         "id": 0,
         "name": "ROM Data",
         "required": true,
-        "parameters": "0x20000000",
+        "parameters": "0x1",
         "extensions": ["bin", "rom"],
-        "filename": "junofirst.rom"
+        "filename": "junofirst.rom",
+        "address": "0x20000000"
       }
     ]
   }
