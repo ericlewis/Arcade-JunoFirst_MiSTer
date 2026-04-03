@@ -135,18 +135,21 @@ pll pll_inst(
     .reconfig_to_pll(64'd0), .reconfig_from_pll()
 );
 
-// Reset
+// Reset — held until ROM loading completes
 reg [19:0] reset_cnt = 20'd300000;
-wire reset = |reset_cnt;
+wire reset = |reset_cnt | ioctl_download;
 always @(posedge CLK_49M)
-    if (reset_cnt) reset_cnt <= reset_cnt - 1'd1;
+    if (ioctl_download)
+        reset_cnt <= 20'd300000;
+    else if (reset_cnt)
+        reset_cnt <= reset_cnt - 1'd1;
 
 // ROM loading via data_loader — all ROMs concatenated at 0x0xxxxxxx
 wire        rom_dl_wr;
 wire [27:0] rom_dl_addr;
 wire  [7:0] rom_dl_data;
 
-data_loader #(.ADDRESS_MASK_UPPER_4(4'h0), .ADDRESS_SIZE(28)) rom_loader (
+data_loader #(.ADDRESS_MASK_UPPER_4(4'h2), .ADDRESS_SIZE(28)) rom_loader (
     .clk_74a(clk_74a), .clk_memory(CLK_49M),
     .bridge_wr(bridge_wr), .bridge_endian_little(bridge_endian_little),
     .bridge_addr(bridge_addr), .bridge_wr_data(bridge_wr_data),
