@@ -2,7 +2,7 @@
 //  Juno First Arcade for Analogue Pocket
 //  Copyright (C) 2026 Eric Lewis — GPL-3.0-or-later
 //============================================================================
-`default_nettype none
+`default_nettype wire
 
 module core_top (
 input   wire            clk_74a, clk_74b,
