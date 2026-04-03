@@ -1,0 +1,29 @@
+name: Build Juno First Pocket Core
+on:
+  push:
+    branches: [master, pocket]
+    paths: ['pocket/**', 'rtl/**', 'pkg/**', '.github/workflows/pocket.yml']
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ln -sf ../rtl pocket/rtl
+      - run: |
+          docker run --rm -v "${{ github.workspace }}:/build" -w /build/pocket \
+            raetro/quartus:pocket quartus_sh --flow compile JunoFirst_Pocket
+      - run: |
+          sudo chown -R runner:runner pocket/output_files/
+          python3 pocket/reverse_bitstream.py \
+            pocket/output_files/JunoFirst_Pocket.rbf pocket/output_files/bitstream.rbf_r
+      - run: |
+          mkdir -p release/Cores/ericlewis.JunoFirst release/Platforms
+          cp pocket/output_files/bitstream.rbf_r release/Cores/ericlewis.JunoFirst/
+          cp pkg/Cores/ericlewis.JunoFirst/*.json release/Cores/ericlewis.JunoFirst/
+          cp pkg/Platforms/arcade.json release/Platforms/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ericlewis.JunoFirst-pocket
+          path: release/
+          retention-days: 30
