@@ -70,10 +70,12 @@ assign dbg_tx=1'bZ; assign user1=1'bZ; assign aux_scl=1'bZ; assign vpll_feed=1'b
 
 // Bridge
 wire [31:0] cmd_bridge_rd_data;
+wire [31:0] interact_bridge_rd_data;
 always @(*) begin
     casex(bridge_addr)
-    32'hF8xxxxxx: bridge_rd_data <= cmd_bridge_rd_data;
-    default:      bridge_rd_data <= 0;
+    32'h00xxxxxx: bridge_rd_data = interact_bridge_rd_data;
+    32'hF8xxxxxx: bridge_rd_data = cmd_bridge_rd_data;
+    default:      bridge_rd_data = 0;
     endcase
 end
 
@@ -126,8 +128,38 @@ always @(posedge clk_74a) begin
     target_dataslot_getfile <= 0; target_dataslot_openfile <= 0;
 end
 
+// ======== Interact Settings (DIP switches) ========
+wire CLK_49M; // forward declaration for CDC
+wire [127:0] status;
+bridge_interact #(.NUM_REGS(8)) interact_bridge (
+    .clk_74a(clk_74a), .clk_sys(CLK_49M),
+    .bridge_addr(bridge_addr),
+    .bridge_wr(bridge_wr & (bridge_addr[31:24] == 8'h00)),
+    .bridge_wr_data(bridge_wr_data),
+    .bridge_rd(bridge_rd & (bridge_addr[31:24] == 8'h00)),
+    .bridge_rd_data(interact_bridge_rd_data),
+    .status(status)
+);
+
+// DIP switch mapping from interact menu
+// DSW1 [7:0]: Coin settings (keep default 0xFF = 1 coin/1 credit)
+// DSW2 [15:8]: Game settings
+wire [1:0] cfg_lives     = status[1:0];   // reg 0: lives
+wire       cfg_cabinet   = status[8];     // reg 1: cabinet
+wire [2:0] cfg_difficulty = status[18:16]; // reg 2: difficulty
+wire       cfg_demo_snd  = status[24];    // reg 3: demo sounds
+
+wire [15:0] dip_sw = {
+    cfg_demo_snd,          // DSW2 bit 7: demo sounds
+    cfg_difficulty,        // DSW2 bits 6-4: difficulty
+    1'b0,                  // DSW2 bit 3: unused
+    cfg_cabinet,           // DSW2 bit 2: cabinet (1=upright)
+    cfg_lives,             // DSW2 bits 1-0: lives
+    8'hFF                  // DSW1: 1 coin / 1 credit
+};
+
 // Clocks
-wire CLK_49M, clk_vid, clk_vid_90;
+wire clk_vid, clk_vid_90; // CLK_49M declared above with interact
 pll pll_inst(
     .refclk(clk_74a), .rst(1'b0),
     .outclk_0(CLK_49M), .outclk_1(clk_vid), .outclk_2(clk_vid_90),
@@ -197,7 +229,7 @@ JunoFirst JF_inst (
     .p1_warp        (~cont1_key[5]),  // B
     .p2_warp        (~cont2_key[5]),
     .btn_service    (1'b1),         // active low
-    .dip_sw         (16'h73FF),     // DSW2=0x73 (3 lives, demo sounds on), DSW1=0xFF (1c/1cr)
+    .dip_sw         (dip_sw),
     .h_center       (4'd0),
     .v_center       (4'd0),
     .video_hsync    (hs_core),
