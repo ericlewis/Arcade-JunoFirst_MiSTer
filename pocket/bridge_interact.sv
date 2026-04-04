@@ -50,3 +50,6 @@ always @(posedge clk_sys) begin
 end
 
 endmodule
+
+// Restore default nettype for other modules compiled after this one
+`default_nettype wire
